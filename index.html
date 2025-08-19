@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARK INTERNET SPEED</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Intro Screen -->
+    <div id="intro-screen" class="intro-screen">
+        <div class="intro-content">
+            <div class="intro-title">
+                <h1>DARK INTERNET SPEED</h1>
+                <div class="intro-subtitle">Professional Network Analysis</div>
+            </div>
+            <div class="tap-to-enter">
+                <div class="tap-text">TAP TO ENTER</div>
+                <div class="tap-indicator">▲</div>
+            </div>
+        </div>
+        <div class="intro-creator">
+            <span class="creator-text">✿ㅤ"MʙɪㅤDᴀʀᴋ"</span>
+        </div>
+    </div>
+
+    <!-- Matrix rain background canvas -->
+    <canvas id="matrix-canvas"></canvas>
+    
+    <!-- Particle trail canvas -->
+    <canvas id="particles-canvas"></canvas>
+    
+    <!-- Main application content -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>DARK INTERNET SPEED <span class="cursor-blink">▌</span></h1>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <span class="stat-icon">📊</span>
+                    <span>Connection Quality: <span id="connection-quality">A+</span></span>
+                </div>
+                <div class="header-stat">
+                    <span class="stat-icon">🌐</span>
+                    <span>ISP: <span id="detected-isp">Detecting...</span></span>
+                </div>
+                <div class="header-stat">
+                    <span class="stat-icon">📍</span>
+                    <span>Server: <span id="selected-server">Auto</span></span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Navigation Tabs -->
+        <nav class="tab-navigation">
+            <button class="tab-btn active" data-tab="speed-test">Speed Test</button>
+            <button class="tab-btn" data-tab="analytics">Analytics</button>
+            <button class="tab-btn" data-tab="diagnostics">Diagnostics</button>
+            <button class="tab-btn" data-tab="history">History</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+        </nav>
+        
+        <!-- Speed Test Panel -->
+        <main class="panel active" id="speed-test-panel">
+            <div class="main-dashboard">
+                <!-- Overall Speed Display -->
+                <div class="overall-speed-section">
+                    <div class="overall-speed-container">
+                        <div class="overall-speed-display">
+                            <h2>OVERALL SPEED</h2>
+                            <div class="mega-gauge">
+                                <svg class="overall-gauge" viewBox="0 0 300 300" role="img" aria-label="Overall speed gauge">
+                                    <circle cx="150" cy="150" r="120" fill="none" stroke="var(--panel-border)" stroke-width="12"/>
+                                    <circle id="overall-gauge" cx="150" cy="150" r="120" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="753.98" stroke-dashoffset="753.98" transform="rotate(-90 150 150)"/>
+                                    <text id="overall-value" x="150" y="140" text-anchor="middle" class="mega-speed-text">0.00</text>
+                                    <text id="overall-unit" x="150" y="170" text-anchor="middle" class="mega-unit-text">Mbps</text>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="test-status-display">
+                            <h3>CURRENT TEST STATUS</h3>
+                            <div class="status-indicator-large">
+                                <div id="test-phase-indicator" class="phase-indicator">IDLE</div>
+                                <div id="test-progress-bar" class="progress-bar">
+                                    <div id="progress-fill" class="progress-fill"></div>
+                                </div>
+                                <div id="test-percentage" class="test-percentage">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Primary Speed Gauges -->
+                <div class="gauges-grid side-by-side">
+                    <div class="gauge-card">
+                        <h3>Download Speed</h3>
+                        <div class="gauge-container">
+                            <svg class="gauge" viewBox="0 0 200 200" role="img" aria-label="Download speed gauge">
+                                <circle cx="100" cy="100" r="80" fill="none" stroke="var(--panel-border)" stroke-width="8"/>
+                                <circle id="download-gauge" cx="100" cy="100" r="80" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="502.65" transform="rotate(-90 100 100)"/>
+                                <text id="download-value" x="100" y="95" text-anchor="middle" class="speed-text">0.00</text>
+                                <text id="download-unit" x="100" y="115" text-anchor="middle" class="unit-text">Mbps</text>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="gauge-card">
+                        <h3>Upload Speed</h3>
+                        <div class="gauge-container">
+                            <svg class="gauge" viewBox="0 0 200 200" role="img" aria-label="Upload speed gauge">
+                                <circle cx="100" cy="100" r="80" fill="none" stroke="var(--panel-border)" stroke-width="8"/>
+                                <circle id="upload-gauge" cx="100" cy="100" r="80" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="502.65" transform="rotate(-90 100 100)"/>
+                                <text id="upload-value" x="100" y="95" text-anchor="middle" class="speed-text">0.00</text>
+                                <text id="upload-unit" x="100" y="115" text-anchor="middle" class="unit-text">Mbps</text>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="gauge-card">
+                        <h3>Ping / Latency</h3>
+                        <div class="gauge-container">
+                            <svg class="gauge" viewBox="0 0 200 200" role="img" aria-label="Ping gauge">
+                                <circle cx="100" cy="100" r="80" fill="none" stroke="var(--panel-border)" stroke-width="8"/>
+                                <circle id="ping-gauge" cx="100" cy="100" r="80" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="502.65" transform="rotate(-90 100 100)"/>
+                                <text id="ping-value" x="100" y="95" text-anchor="middle" class="speed-text">0</text>
+                                <text x="100" y="115" text-anchor="middle" class="unit-text">ms</text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Real-time Performance Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon">📈</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Jitter</span>
+                            <span id="jitter-value" class="metric-value">0ms</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">📉</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Packet Loss</span>
+                            <span id="packet-loss-value" class="metric-value">0%</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">⚡</div>
+                        <div class="metric-info">
+                            <span class="metric-label">DNS Lookup</span>
+                            <span id="dns-value" class="metric-value">0ms</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon">🔄</div>
+                        <div class="metric-info">
+                            <span class="metric-label">Connection Time</span>
+                            <span id="connection-time-value" class="metric-value">0ms</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Performance Chart -->
+                <div class="chart-container">
+                    <h3>Real-time Performance</h3>
+                    <canvas id="performance-chart" width="800" height="200"></canvas>
+                </div>
+                
+                <!-- Average Speed and Ping Display -->
+                <div class="average-stats-section">
+                    <div class="avg-stats-grid">
+                        <div class="avg-stat-card">
+                            <h3>Average Download Speed</h3>
+                            <div class="avg-value">
+                                <span id="avg-download-value" class="avg-speed-text">0.00</span>
+                                <span id="avg-download-unit" class="avg-unit-text">Mbps</span>
+                            </div>
+                        </div>
+                        <div class="avg-stat-card">
+                            <h3>Average Upload Speed</h3>
+                            <div class="avg-value">
+                                <span id="avg-upload-value" class="avg-speed-text">0.00</span>
+                                <span id="avg-upload-unit" class="avg-unit-text">Mbps</span>
+                            </div>
+                        </div>
+                        <div class="avg-stat-card">
+                            <h3>Average Ping</h3>
+                            <div class="avg-value">
+                                <span id="avg-ping-value" class="avg-speed-text">0</span>
+                                <span class="avg-unit-text">ms</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Analytics Panel -->
+        <div class="panel" id="analytics-panel">
+            <div class="analytics-dashboard">
+                <div class="analytics-header">
+                    <h2>Performance Analytics</h2>
+                    <div class="time-range-selector">
+                        <button class="time-btn active" data-range="1h">1H</button>
+                        <button class="time-btn" data-range="24h">24H</button>
+                        <button class="time-btn" data-range="7d">7D</button>
+                        <button class="time-btn" data-range="30d">30D</button>
+                    </div>
+                </div>
+                
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <h3>Speed Trends</h3>
+                        <canvas id="speed-trends-chart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Peak Performance Hours</h3>
+                        <canvas id="peak-hours-chart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>Connection Stability</h3>
+                        <div class="stability-score">
+                            <div class="score-circle">
+                                <span id="stability-score">95</span>
+                                <small>%</small>
+                            </div>
+                            <div class="stability-details">
+                                <div class="detail-item">
+                                    <span>Uptime:</span>
+                                    <span id="uptime-percentage">99.8%</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Avg Jitter:</span>
+                                    <span id="avg-jitter">2.1ms</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Packet Loss:</span>
+                                    <span id="avg-packet-loss">0.02%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>ISP Performance Comparison</h3>
+                        <div class="comparison-chart">
+                            <div class="comparison-bar">
+                                <span>Your Speed</span>
+                                <div class="bar your-speed" data-value="85"></div>
+                                <span id="your-speed-comparison">85.2 Mbps</span>
+                            </div>
+                            <div class="comparison-bar">
+                                <span>Local Average</span>
+                                <div class="bar local-avg" data-value="65"></div>
+                                <span id="local-avg-comparison">65.8 Mbps</span>
+                            </div>
+                            <div class="comparison-bar">
+                                <span>National Average</span>
+                                <div class="bar national-avg" data-value="55"></div>
+                                <span id="national-avg-comparison">55.3 Mbps</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Diagnostics Panel -->
+        <div class="panel" id="diagnostics-panel">
+            <div class="diagnostics-dashboard">
+                <h2>Network Diagnostics</h2>
+                
+                <div class="diagnostics-grid">
+                    <div class="diagnostic-card">
+                        <h3>DNS Performance</h3>
+                        <div class="dns-tests">
+                            <div class="dns-test">
+                                <span>Google DNS:</span>
+                                <span id="google-dns-time">Testing...</span>
+                            </div>
+                            <div class="dns-test">
+                                <span>Cloudflare DNS:</span>
+                                <span id="cloudflare-dns-time">Testing...</span>
+                            </div>
+                            <div class="dns-test">
+                                <span>ISP DNS:</span>
+                                <span id="isp-dns-time">Testing...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="diagnostic-card">
+                        <h3>Connection Route</h3>
+                        <div id="traceroute-result" class="traceroute">
+                            <div class="hop">
+                                <span class="hop-number">1</span>
+                                <span class="hop-ip">192.168.1.1</span>
+                                <span class="hop-time">1.2ms</span>
+                            </div>
+                            <!-- More hops will be added dynamically -->
+                        </div>
+                    </div>
+                    
+                    <div class="diagnostic-card">
+                        <h3>Wi-Fi Analysis</h3>
+                        <div class="wifi-info">
+                            <div class="wifi-metric">
+                                <span>Signal Strength:</span>
+                                <div class="signal-bars">
+                                    <div class="bar active"></div>
+                                    <div class="bar active"></div>
+                                    <div class="bar active"></div>
+                                    <div class="bar"></div>
+                                </div>
+                                <span id="signal-strength">-65 dBm</span>
+                            </div>
+                            <div class="wifi-metric">
+                                <span>Channel:</span>
+                                <span id="wifi-channel">6 (2.4GHz)</span>
+                            </div>
+                            <div class="wifi-metric">
+                                <span>Bandwidth:</span>
+                                <span id="wifi-bandwidth">20MHz</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="diagnostic-card">
+                        <h3>Server Selection</h3>
+                        <div class="server-list">
+                            <div class="server-item active">
+                                <span class="server-flag">🇺🇸</span>
+                                <span class="server-location">New York, NY</span>
+                                <span class="server-ping">15ms</span>
+                                <span class="server-load">Low</span>
+                            </div>
+                            <!-- More servers will be added dynamically -->
+                        </div>
+                        <button id="auto-select-server" class="control-btn secondary">Auto Select Best Server</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- History Panel -->
+        <div class="panel" id="history-panel">
+            <div class="history-dashboard">
+                <div class="history-header">
+                    <h2>Speed Test History</h2>
+                    <div class="history-controls">
+                        <button id="export-history" class="control-btn secondary">Export Data</button>
+                        <button id="clear-history" class="control-btn danger">Clear History</button>
+                    </div>
+                </div>
+                
+                <div class="history-chart">
+                    <canvas id="history-chart" width="800" height="300"></canvas>
+                </div>
+                
+                <div class="history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Download</th>
+                                <th>Upload</th>
+                                <th>Ping</th>
+                                <th>Server</th>
+                                <th>Quality Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- History entries will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Panel -->
+        <div class="panel" id="settings-panel">
+            <div class="settings-dashboard">
+                <h2>Settings & Configuration</h2>
+                
+                <div class="settings-grid">
+                    <div class="settings-section">
+                        <h3>Appearance</h3>
+                        <div class="setting-group">
+                            <label for="theme-select">Color Theme:</label>
+                            <select id="theme-select">
+                                <option value="cyan">Cyan Professional</option>
+                                <option value="purple">Purple Enterprise</option>
+                                <option value="amber">Amber Corporate</option>
+                                <option value="red">Red Performance</option>
+                                <option value="teal">Teal Modern</option>
+                                <option value="custom">Custom Color</option>
+                            </select>
+                            <input type="color" id="custom-color" class="color-picker" value="#00ffff">
+                        </div>
+                        <div class="setting-group">
+                            <label for="units-select">Measurement Units:</label>
+                            <select id="units-select">
+                                <option value="Mbps">Mbps (Megabits/sec)</option>
+                                <option value="MB/s">MB/s (Megabytes/sec)</option>
+                                <option value="Kbps">Kbps (Kilobits/sec)</option>
+                                <option value="KB/s">KB/s (Kilobytes/sec)</option>
+                                <option value="Gbps">Gbps (Gigabits/sec)</option>
+                                <option value="GB/s">GB/s (Gigabytes/sec)</option>
+                                <option value="bps">bps (bits/sec)</option>
+                                <option value="B/s">B/s (bytes/sec)</option>
+                                <option value="Tbps">Tbps (Terabits/sec)</option>
+                                <option value="TB/s">TB/s (Terabytes/sec)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Testing Configuration</h3>
+                        <div class="setting-group">
+                            <label for="auto-test-interval">Automatic Testing:</label>
+                            <select id="auto-test-interval">
+                                <option value="disabled">Disabled</option>
+                                <option value="300">Every 5 minutes</option>
+                                <option value="900">Every 15 minutes</option>
+                                <option value="3600">Every hour</option>
+                                <option value="86400">Daily</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="save-history">
+                                Save test history to database
+                            </label>
+                        </div>
+                        <div class="setting-group">
+                            <label>
+                                <input type="checkbox" id="notifications-enabled">
+                                Enable performance notifications
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Performance Thresholds</h3>
+                        <div class="setting-group">
+                            <label for="slow-speed-threshold">Slow Speed Alert (Mbps):</label>
+                            <input type="number" id="slow-speed-threshold" value="25" min="1" max="1000">
+                        </div>
+                        <div class="setting-group">
+                            <label for="high-ping-threshold">High Ping Alert (ms):</label>
+                            <input type="number" id="high-ping-threshold" value="100" min="10" max="1000">
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>About</h3>
+                        <div class="about-info">
+                            <p><strong>Professional Speed Analyzer</strong></p>
+                            <p>Version 2.0.0</p>
+                            <p>Advanced network performance testing and analytics</p>
+                            <button id="reset-settings" class="control-btn danger">Reset All Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Professional Footer -->
+        <footer class="professional-footer">
+            <div class="footer-left">
+                <div class="status-info">
+                    <span class="status-indicator"></span>
+                    <span id="current-status">Ready for testing</span>
+                </div>
+                <div class="system-info">
+                    <span class="info-item">
+                        <span class="info-label">Connection:</span>
+                        <span id="connection-type">Ethernet</span>
+                    </span>
+                    <span class="info-item">
+                        <span class="info-label">Public IP:</span>
+                        <span id="public-ip">Loading...</span>
+                    </span>
+                    <span class="info-item">
+                        <span class="info-label">Location:</span>
+                        <span id="location">Loading...</span>
+                    </span>
+                </div>
+            </div>
+            <div class="footer-center">
+                <div class="performance-metrics">
+                    <span class="metric-item">
+                        <span class="metric-label">Avg Speed:</span>
+                        <span id="footer-avg-speed">0.0 Mbps</span>
+                    </span>
+                    <span class="metric-item">
+                        <span class="metric-label">Peak Speed:</span>
+                        <span id="footer-peak-speed">0.0 Mbps</span>
+                    </span>
+                    <span class="metric-item">
+                        <span class="metric-label">Tests Run:</span>
+                        <span id="footer-tests-count">0</span>
+                    </span>
+                </div>
+            </div>
+            <div class="footer-right">
+                <div class="branding">
+                    <span class="made-by">Made by</span>
+                    <span class="creator">✿ㅤ"MʙɪㅤDᴀʀᴋ"</span>
+                </div>
+                <div class="version-info">
+                    <span>Dark Internet Speed v2.0</span>
+                    <span class="build-info">Build 2024.12</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
