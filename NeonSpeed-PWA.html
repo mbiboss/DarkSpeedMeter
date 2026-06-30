@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NeonSpeed | Network Diagnostic Terminal</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NeonSpeed">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Futuristic network speed diagnostic terminal with real-time monitoring">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;600;700&display=swap');
+    
+    :root {
+        --neon-cyan: #00F0FF;
+        --neon-green: #00FF9C;
+        --matt-black: #0A0A0A;
+        --glass-bg: rgba(15, 23, 42, 0.4);
+        --glass-border: rgba(0, 240, 255, 0.2);
+        --text-primary: #E0F7FA;
+        --text-secondary: #7DD3FC;
+    }
+    
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    html, body {
+        width: 100%;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        font-family: 'Share Tech Mono', 'JetBrains Mono', monospace;
+        color: var(--text-primary);
+    }
+    
+    body {
+        padding: 10px;
+        overflow: hidden;
+    }
+    
+    .viewport-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #000;
+        overflow: hidden;
+    }
+    
+    .aspect-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(calc(100vw - 20px), calc((100vh - 20px) * 16 / 9));
+        height: min(calc(100vh - 20px), calc((100vw - 20px) * 9 / 16));
+        aspect-ratio: 16 / 9;
+        background: var(--matt-black);
+        background-image: 
+            radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(0, 133, 255, 0.05) 0%, transparent 50%);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        animation: scanline 8s linear infinite;
+        opacity: 0.3;
+        z-index: 1000;
+        pointer-events: none;
+    }
+    
+    @keyframes scanline {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(100%); }
+    }
+    
+    .main-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        padding: 8px;
+    }
+    
+    .status-bar {
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        padding: 6px 12px;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+        flex-shrink: 0;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: var(--neon-green);
+        border-radius: 50%;
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulse 2s ease-in-out infinite;
+        margin-right: 4px;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .content-area {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        grid-template-rows: 1fr auto;
+        gap: 6px;
+        overflow: hidden;
+        margin-bottom: 6px;
+    }
+    
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 8px;
+        box-shadow: 
+            0 0 30px rgba(0, 240, 255, 0.1),
+            inset 0 0 30px rgba(0, 240, 255, 0.02);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+        to { left: 100%; }
+    }
+    
+    .gauge-section {
+        grid-column: 1;
+        grid-row: 1;
+        overflow: hidden;
+    }
+    
+    .stats-section {
+        grid-column: 2;
+        grid-row: 1;
+        overflow: hidden;
+    }
+    
+    .charts-section {
+        grid-column: 1 / 3;
+        grid-row: 2;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        height: 100px;
+        overflow: hidden;
+    }
+    
+    .gauge-container {
+        position: relative;
+        width: 100%;
+        max-width: 280px;
+        aspect-ratio: 1;
+        margin: 0 auto;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .gauge-bg {
+        fill: none;
+        stroke: rgba(15, 23, 42, 0.8);
+        stroke-width: 16;
+        stroke-linecap: round;
+    }
+    
+    .gauge-track {
+        fill: none;
+        stroke: rgba(0, 240, 255, 0.1);
+        stroke-width: 16;
+        stroke-linecap: round;
+    }
+    
+    .gauge-progress {
+        fill: none;
+        stroke: url(#gradient);
+        stroke-width: 16;
+        stroke-linecap: round;
+        stroke-dasharray: 659.73;
+        stroke-dashoffset: 659.73;
+        transition: stroke-dashoffset 0.3s ease-out;
+        filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.8));
+    }
+    
+    .neon-text {
+        color: var(--neon-cyan);
+        text-shadow: 
+            0 0 8px rgba(0, 240, 255, 0.8),
+            0 0 16px rgba(0, 240, 255, 0.5);
+    }
+    
+    .neon-glow {
+        box-shadow: 
+            0 0 16px rgba(0, 240, 255, 0.4),
+            0 0 32px rgba(0, 240, 255, 0.2);
+    }
+    
+    .button-area {
+        flex-shrink: 0;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .btn-hacker {
+        background: linear-gradient(135deg, rgba(0, 133, 255, 0.3), rgba(0, 240, 255, 0.3));
+        border: 1px solid var(--neon-cyan);
+        box-shadow: 
+            0 0 16px rgba(0, 240, 255, 0.4),
+            inset 0 0 16px rgba(0, 240, 255, 0.1);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-size: 10px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .btn-hacker:hover {
+        background: linear-gradient(135deg, rgba(0, 133, 255, 0.5), rgba(0, 240, 255, 0.5));
+        box-shadow: 
+            0 0 24px rgba(0, 240, 255, 0.6),
+            inset 0 0 24px rgba(0, 240, 255, 0.2);
+        transform: translateY(-1px);
+    }
+    
+    .btn-stop {
+        background: linear-gradient(135deg, rgba(220, 38, 38, 0.3), rgba(248, 113, 113, 0.3));
+        border-color: #DC2626;
+        box-shadow: 
+            0 0 16px rgba(220, 38, 38, 0.4),
+            inset 0 0 16px rgba(220, 38, 38, 0.1);
+    }
+    
+    .btn-stop:hover {
+        background: linear-gradient(135deg, rgba(220, 38, 38, 0.5), rgba(248, 113, 113, 0.5));
+        box-shadow: 
+            0 0 24px rgba(220, 38, 38, 0.6),
+            inset 0 0 24px rgba(220, 38, 38, 0.2);
+    }
+    
+    .stat-box {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(0, 240, 255, 0.15);
+        border-radius: 6px;
+        padding: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-box:hover {
+        border-color: rgba(0, 240, 255, 0.4);
+        box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+    }
+    
+    .signal-bars {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+        height: 12px;
+    }
+    
+    .signal-bar {
+        width: 2.5px;
+        background: rgba(0, 240, 255, 0.2);
+        border-radius: 1px;
+        transition: all 0.3s ease;
+    }
+    
+    .signal-bar.active {
+        background: var(--neon-cyan);
+        box-shadow: 0 0 6px var(--neon-cyan);
+    }
+    
+    .testing-dots {
+        display: inline-block;
+    }
+    
+    .testing-dots span {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background: var(--neon-cyan);
+        border-radius: 50%;
+        margin: 0 1px;
+        animation: blink 1.4s infinite both;
+        box-shadow: 0 0 6px var(--neon-cyan);
+    }
+    
+    .testing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .testing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes blink {
+        0%, 80%, 100% { opacity: 0.2; }
+        40% { opacity: 1; }
+    }
+    
+    canvas {
+        max-height: 78px !important;
+    }
+    
+    .history-log {
+        font-size: 8px;
+        line-height: 1.4;
+        max-height: 60px;
+        overflow-y: auto;
+    }
+    
+    .history-item {
+        padding: 2px 0;
+        border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+    }
+    
+    .history-item:last-child {
+        border-bottom: none;
+    }
+    
+    ::-webkit-scrollbar {
+        width: 3px;
+        height: 3px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 240, 255, 0.05);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: rgba(0, 240, 255, 0.3);
+        border-radius: 2px;
+    }
+    
+    .rotate-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .rotate-overlay.active {
+        display: flex;
+    }
+    
+    .rotate-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 16px;
+        animation: rotate-phone 2s ease-in-out infinite;
+    }
+    
+    @keyframes rotate-phone {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(90deg); }
+    }
+    
+    .rotate-text {
+        font-size: 14px;
+        color: var(--neon-cyan);
+        text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+    
+    @media (max-width: 1024px) {
+        .hide-mobile {
+            display: none;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="rotate-overlay" id="rotate-overlay">
+        <svg class="rotate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="7" y="2" width="10" height="20" rx="2" class="neon-text" stroke="var(--neon-cyan)"></rect>
+            <path d="M12 18h.01" stroke="var(--neon-cyan)" stroke-linecap="round"></path>
+        </svg>
+        <div class="rotate-text">Please rotate to landscape</div>
+    </div>
+
+    <div class="viewport-wrapper">
+        <div class="aspect-container" id="aspect-container">
+            <div class="scanline"></div>
+            
+            <div class="main-container">
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span><span class="status-indicator"></span>SYSTEM: <span class="neon-text">ONLINE</span></span>
+                        <span class="hide-mobile">|</span>
+                        <span id="ip-display" class="hide-mobile">IP: LOADING...</span>
+                        <span class="hide-mobile">|</span>
+                        <span id="location-display" class="hide-mobile">LOCATION: --</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div id="signal-container" class="flex items-center gap-1.5">
+                            <span>SIGNAL:</span>
+                            <div class="signal-bars">
+                                <div class="signal-bar" style="height: 25%"></div>
+                                <div class="signal-bar" style="height: 50%"></div>
+                                <div class="signal-bar" style="height: 75%"></div>
+                                <div class="signal-bar" style="height: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="content-area">
+                    <!-- Gauge Section -->
+                    <div class="glass-card gauge-section">
+                        <div class="text-center mb-1">
+                            <h1 class="text-[16px] font-bold mb-0.5">
+                                <span class="neon-text">[</span> NEONSPEED <span class="neon-text">]</span>
+                            </h1>
+                            <p class="text-[8px] text-text-secondary">NETWORK DIAGNOSTIC TERMINAL v3.1</p>
+                        </div>
+                        
+                        <div class="flex items-center justify-center gap-1.5 mb-1">
+                            <div id="status-indicator" class="hidden testing-dots">
+                                <span></span><span></span>
+                            </div>
+                            <h2 id="test-status" class="text-[9px] text-text-secondary uppercase tracking-wider">READY_TO_TEST</h2>
+                        </div>
+                        
+                        <div class="gauge-container">
+                            <svg viewBox="0 0 240 240" class="w-full h-full">
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#00F0FF;stop-opacity:1" />
+                                        <stop offset="50%" style="stop-color:#0085FF;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#00F0FF;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="120" cy="120" r="105" class="gauge-bg"/>
+                                <circle cx="120" cy="120" r="105" class="gauge-track"/>
+                                <circle id="gauge-progress" cx="120" cy="120" r="105" class="gauge-progress" 
+                                        transform="rotate(-210 120 120)"/>
+                                <g id="ticks"></g>
+                            </svg>
+                            
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <div class="text-[24px] font-bold neon-text" id="speed-value">0.00</div>
+                                <div class="text-[8px] text-text-secondary mt-0.5">Mbps</div>
+                                <div class="text-[8px] text-text-secondary mt-1 uppercase tracking-widest" id="speed-type">DOWNLOAD</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="glass-card stats-section">
+                        <h3 class="text-[10px] font-bold mb-1 neon-text uppercase tracking-wider">CONNECTION_STATS</h3>
+                        <div class="grid grid-cols-2 gap-1.5 mb-1.5">
+                            <div class="stat-box">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] text-text-secondary">PING</span>
+                                    <svg class="w-2.5 h-2.5 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[14px] font-bold neon-text" id="ping-value">--</div>
+                                <div class="text-[7px] text-text-secondary">ms</div>
+                            </div>
+
+                            <div class="stat-box">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] text-text-secondary">JITTER</span>
+                                    <svg class="w-2.5 h-2.5 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[14px] font-bold neon-text" id="jitter-value">--</div>
+                                <div class="text-[7px] text-text-secondary">ms</div>
+                            </div>
+
+                            <div class="stat-box">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] text-text-secondary">PKT_LOSS</span>
+                                    <svg class="w-2.5 h-2.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[14px] font-bold text-orange-400" id="packet-loss">0.0</div>
+                                <div class="text-[7px] text-text-secondary">%</div>
+                            </div>
+
+                            <div class="stat-box">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] text-text-secondary">PEAK_DL</span>
+                                    <svg class="w-2.5 h-2.5 text-neon-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[14px] font-bold text-neon-cyan" id="peak-download">0.00</div>
+                                <div class="text-[7px] text-text-secondary">Mbps</div>
+                            </div>
+
+                            <div class="stat-box col-span-2">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <span class="text-[8px] text-text-secondary">PEAK_UL</span>
+                                    <svg class="w-2.5 h-2.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 15l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-[14px] font-bold text-blue-400" id="peak-upload">0.00</div>
+                                <div class="text-[7px] text-text-secondary">Mbps</div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-glass-border pt-1.5 flex-1 min-h-0">
+                            <h4 class="text-[9px] font-bold mb-0.5 neon-text uppercase">HISTORY_LOG</h4>
+                            <div id="history-log" class="history-log text-text-secondary">
+                                <div class="text-center opacity-50">NO_TEST_DATA</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="charts-section">
+                        <div class="glass-card">
+                            <h3 class="text-[9px] font-bold mb-0.5 flex items-center gap-1 neon-text uppercase">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                </svg>
+                                DOWNLOAD
+                            </h3>
+                            <canvas id="download-chart"></canvas>
+                        </div>
+
+                        <div class="glass-card">
+                            <h3 class="text-[9px] font-bold mb-0.5 flex items-center gap-1 text-blue-400 uppercase">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 15l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                UPLOAD
+                            </h3>
+                            <canvas id="upload-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Button Area - Always Visible -->
+                <div class="button-area">
+                    <button id="control-btn" class="btn-hacker neon-glow">
+                        [ INITIATE TEST ]
+                    </button>
+                    <div class="text-[8px] text-text-secondary text-center" id="isp-display">
+                        ISP: DETECTING...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const rotateOverlay = document.getElementById('rotate-overlay');
+    
+    function checkOrientation() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+        
+        if (isMobile && isPortrait) {
+            rotateOverlay.classList.add('active');
+        } else {
+            rotateOverlay.classList.remove('active');
+        }
+    }
+    
+    window.addEventListener('orientationchange', checkOrientation);
+    window.addEventListener('resize', checkOrientation);
+    checkOrientation();
+
+    let isTestRunning = false;
+    let shouldStop = false;
+    let peakDownload = 0;
+    let peakUpload = 0;
+    let downloadChart, uploadChart;
+    let testHistory = [];
+    let packetLossCount = 0;
+    let totalRequests = 0;
+    let userInfo = null;
+    
+    const controlBtn = document.getElementById('control-btn');
+    const speedValue = document.getElementById('speed-value');
+    const speedType = document.getElementById('speed-type');
+    const gaugeProgress = document.getElementById('gauge-progress');
+    const testStatus = document.getElementById('test-status');
+    const statusIndicator = document.getElementById('status-indicator');
+    const pingValue = document.getElementById('ping-value');
+    const jitterValue = document.getElementById('jitter-value');
+    const packetLossEl = document.getElementById('packet-loss');
+    const peakDownloadEl = document.getElementById('peak-download');
+    const peakUploadEl = document.getElementById('peak-upload');
+    const ipDisplay = document.getElementById('ip-display');
+    const locationDisplay = document.getElementById('location-display');
+    const ispDisplay = document.getElementById('isp-display');
+    
+    const maxSpeed = 1000;
+    const circumference = 2 * Math.PI * 105;
+    const gaugeRange = 240;
+    
+    function initGaugeTicks() {
+        const ticksGroup = document.getElementById('ticks');
+        const numTicks = 11;
+        for (let i = 0; i < numTicks; i++) {
+            const angle = -210 + (gaugeRange / (numTicks - 1)) * i;
+            const radian = (angle * Math.PI) / 180;
+            const x1 = 120 + 88 * Math.cos(radian);
+            const y1 = 120 + 88 * Math.sin(radian);
+            const x2 = 120 + 96 * Math.cos(radian);
+            const y2 = 120 + 96 * Math.sin(radian);
+            
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', 'rgba(0, 240, 255, 0.3)');
+            line.setAttribute('stroke-width', '2');
+            ticksGroup.appendChild(line);
+            
+            const labelX = 120 + 76 * Math.cos(radian);
+            const labelY = 120 + 76 * Math.sin(radian);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', labelX);
+            text.setAttribute('y', labelY + 2);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', 'rgba(125, 211, 252, 0.6)');
+            text.setAttribute('font-size', '6');
+            text.setAttribute('font-family', 'Share Tech Mono');
+            text.textContent = i * 100;
+            ticksGroup.appendChild(text);
+        }
+    }
+    
+    function updateGauge(speed) {
+        const normalizedSpeed = Math.min(speed, maxSpeed);
+        const percentage = normalizedSpeed / maxSpeed;
+        const offset = circumference - (percentage * circumference * (gaugeRange / 360));
+        gaugeProgress.style.strokeDashoffset = offset;
+        speedValue.textContent = speed.toFixed(2);
+    }
+    
+    function updateSignalBars(strength) {
+        const bars = document.querySelectorAll('.signal-bar');
+        const activeCount = Math.ceil((strength / 100) * 4);
+        bars.forEach((bar, i) => {
+            if (i < activeCount) {
+                bar.classList.add('active');
+            } else {
+                bar.classList.remove('active');
+            }
+        });
+    }
+    
+    async function fetchUserInfo() {
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            userInfo = await res.json();
+            ipDisplay.textContent = `IP: ${userInfo.ip}`;
+            locationDisplay.textContent = `LOCATION: ${userInfo.city}, ${userInfo.country_code}`;
+            ispDisplay.textContent = `ISP: ${userInfo.org}`;
+        } catch (e) {
+            ipDisplay.textContent = 'IP: UNAVAILABLE';
+            locationDisplay.textContent = 'LOCATION: --';
+            ispDisplay.textContent = 'ISP: UNKNOWN';
+        }
+    }
+    
+    const chartConfig = {
+        type: 'line',
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            scales: {
+                x: {
+                    display: false,
+                    grid: { display: false }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { 
+                        color: 'rgba(0, 240, 255, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: { 
+                        color: 'rgba(125, 211, 252, 0.6)',
+                        font: { size: 6, family: 'Share Tech Mono' },
+                        maxTicksLimit: 2
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: false
+                }
+            },
+            elements: {
+                line: { tension: 0.4 },
+                point: { radius: 0 }
+            }
+        }
+    };
+    
+    function initCharts() {
+        const downloadCtx = document.getElementById('download-chart').getContext('2d');
+        downloadChart = new Chart(downloadCtx, {
+            ...chartConfig,
+            data: {
+                labels: Array(20).fill(''),
+                datasets: [{
+                    data: Array(20).fill(0),
+                    borderColor: '#00F0FF',
+                    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                    fill: true,
+                    borderWidth: 1.5
+                }]
+            }
+        });
+        
+        const uploadCtx = document.getElementById('upload-chart').getContext('2d');
+        uploadChart = new Chart(uploadCtx, {
+            ...chartConfig,
+            data: {
+                labels: Array(20).fill(''),
+                datasets: [{
+                    data: Array(20).fill(0),
+                    borderColor: '#0085FF',
+                    backgroundColor: 'rgba(0, 133, 255, 0.1)',
+                    fill: true,
+                    borderWidth: 1.5
+                }]
+            }
+        });
+    }
+    
+    function updateChart(chart, value) {
+        const data = chart.data.datasets[0].data;
+        data.shift();
+        data.push(value);
+        chart.update('none');
+    }
+    
+    function addToHistory(download, upload, ping) {
+        const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+        testHistory.unshift({
+            time: timestamp,
+            download: download.toFixed(2),
+            upload: upload.toFixed(2),
+            ping: ping
+        });
+        
+        if (testHistory.length > 5) {
+            testHistory.pop();
+        }
+        
+        const historyLog = document.getElementById('history-log');
+        historyLog.innerHTML = testHistory.map(h => `
+            <div class="history-item">
+                <span class="neon-text">[${h.time}]</span> DL:${h.download} UL:${h.upload} PING:${h.ping}ms
+            </div>
+        `).join('');
+    }
+    
+    async function measurePing(attempts = 5) {
+        const pings = [];
+        packetLossCount = 0;
+        totalRequests = attempts;
+        const pingUrl = 'https://www.cloudflare.com/cdn-cgi/trace';
+        
+        for (let i = 0; i < attempts; i++) {
+            if (shouldStop) break;
+            const start = performance.now();
+            try {
+                await fetch(pingUrl + '?t=' + Date.now(), { cache: 'no-store', mode: 'cors' });
+                const end = performance.now();
+                pings.push(end - start);
+            } catch (e) {
+                packetLossCount++;
+                pings.push(null);
+            }
+            await new Promise(r => setTimeout(r, 100));
+        }
+        
+        const lossPercent = (packetLossCount / totalRequests) * 100;
+        packetLossEl.textContent = lossPercent.toFixed(1);
+        
+        const validPings = pings.filter(p => p !== null);
+        if (validPings.length === 0) return { avg: 0, jitter: 0 };
+        
+        const avg = validPings.reduce((a, b) => a + b, 0) / validPings.length;
+        const jitter = validPings.length > 1 
+            ? Math.sqrt(validPings.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / validPings.length)
+            : 0;
+        
+        return { avg: avg.toFixed(0), jitter: jitter.toFixed(1) };
+    }
+    
+    async function measureDownload(duration = 10000) {
+        const testUrl = 'https://speed.cloudflare.com/__down?bytes=50000000';
+        const startTime = Date.now();
+        let totalBytes = 0;
+        let lastUpdate = startTime;
+        
+        testStatus.textContent = 'TESTING_DOWNLOAD';
+        speedType.textContent = 'DOWNLOAD';
+        
+        try {
+            const response = await fetch(testUrl + '&t=' + Date.now(), { cache: 'no-store' });
+            const reader = response.body.getReader();
+            
+            while (true) {
+                if (shouldStop) {
+                    reader.cancel();
+                    break;
+                }
+                
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                totalBytes += value.length;
+                const now = Date.now();
+                
+                if (now - lastUpdate >= 200) {
+                    const elapsedSec = (now - startTime) / 1000;
+                    const speedMbps = (totalBytes * 8) / (elapsedSec * 1000000);
+                    updateGauge(speedMbps);
+                    updateChart(downloadChart, speedMbps);
+                    if (speedMbps > peakDownload) {
+                        peakDownload = speedMbps;
+                        peakDownloadEl.textContent = peakDownload.toFixed(2);
+                    }
+                    updateSignalBars(Math.min(speedMbps / 10, 100));
+                    lastUpdate = now;
+                }
+                
+                if (now - startTime >= duration) {
+                    reader.cancel();
+                    break;
+                }
+            }
+        } catch (e) {
+            console.log('Download test error:', e);
+        }
+        
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        const finalSpeed = (totalBytes * 8) / (elapsedSec * 1000000);
+        return finalSpeed;
+    }
+    
+    async function measureUpload(duration = 8000) {
+        const testUrl = 'https://speed.cloudflare.com/__up';
+        const startTime = Date.now();
+        const chunkSize = 256 * 1024;
+        let totalBytes = 0;
+        let lastUpdate = startTime;
+        
+        testStatus.textContent = 'TESTING_UPLOAD';
+        speedType.textContent = 'UPLOAD';
+        updateGauge(0);
+        
+        const chunk = new Uint8Array(chunkSize);
+        crypto.getRandomValues(chunk);
+        const blob = new Blob([chunk], { type: 'application/octet-stream' });
+        
+        try {
+            while (Date.now() - startTime < duration && !shouldStop) {
+                try {
+                    await fetch(testUrl, {
+                        method: 'POST',
+                        body: blob,
+                        cache: 'no-store',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/octet-stream' }
+                    });
+                    totalBytes += chunkSize;
+                } catch (e) {
+                    console.log('Upload chunk error:', e);
+                }
+                
+                const now = Date.now();
+                
+                if (now - lastUpdate >= 200) {
+                    const elapsedSec = (now - startTime) / 1000;
+                    if (elapsedSec > 0) {
+                        const speedMbps = (totalBytes * 8) / (elapsedSec * 1000000);
+                        updateGauge(speedMbps);
+                        updateChart(uploadChart, speedMbps);
+                        if (speedMbps > peakUpload) {
+                            peakUpload = speedMbps;
+                            peakUploadEl.textContent = peakUpload.toFixed(2);
+                        }
+                        updateSignalBars(Math.min(speedMbps / 10, 100));
+                    }
+                    lastUpdate = now;
+                }
+                
+                await new Promise(r => setTimeout(r, 50));
+            }
+        } catch (e) {
+            console.log('Upload test error:', e);
+        }
+        
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        const finalSpeed = elapsedSec > 0 ? (totalBytes * 8) / (elapsedSec * 1000000) : 0;
+        return finalSpeed;
+    }
+    
+    async function runSpeedTest() {
+        if (isTestRunning) return;
+        
+        isTestRunning = true;
+        shouldStop = false;
+        
+        peakDownload = 0;
+        peakUpload = 0;
+        packetLossCount = 0;
+        peakDownloadEl.textContent = '0.00';
+        peakUploadEl.textContent = '0.00';
+        packetLossEl.textContent = '0.0';
+        downloadChart.data.datasets[0].data = Array(20).fill(0);
+        uploadChart.data.datasets[0].data = Array(20).fill(0);
+        downloadChart.update();
+        uploadChart.update();
+        
+        controlBtn.textContent = '[ ABORT TEST ]';
+        controlBtn.classList.remove('btn-hacker');
+        controlBtn.classList.add('btn-stop');
+        statusIndicator.classList.remove('hidden');
+        
+        let finalPing = 0;
+        
+        try {
+            testStatus.textContent = 'MEASURING_PING';
+            const ping = await measurePing();
+            pingValue.textContent = ping.avg;
+            jitterValue.textContent = ping.jitter;
+            finalPing = ping.avg;
+            
+            if (shouldStop) throw new Error('Stopped');
+            
+            const dlSpeed = await measureDownload();
+            
+            if (shouldStop) throw new Error('Stopped');
+            
+            await new Promise(r => setTimeout(r, 500));
+            
+            const ulSpeed = await measureUpload();
+            
+            testStatus.textContent = 'TEST_COMPLETE';
+            addToHistory(dlSpeed, ulSpeed, finalPing);
+            
+        } catch (e) {
+            if (e.message !== 'Stopped') {
+                testStatus.textContent = 'TEST_FAILED';
+            } else {
+                testStatus.textContent = 'TEST_ABORTED';
+            }
+        } finally {
+            isTestRunning = false;
+            shouldStop = false;
+            controlBtn.textContent = '[ INITIATE TEST ]';
+            controlBtn.classList.remove('btn-stop');
+            controlBtn.classList.add('btn-hacker');
+            statusIndicator.classList.add('hidden');
+            speedType.textContent = 'READY';
+            updateGauge(0);
+            updateSignalBars(0);
+        }
+    }
+    
+    controlBtn.addEventListener('click', () => {
+        if (isTestRunning) {
+            shouldStop = true;
+        } else {
+            runSpeedTest();
+        }
+    });
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        initGaugeTicks();
+        initCharts();
+        updateGauge(0);
+        fetchUserInfo();
+    });
+    
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (downloadChart) downloadChart.resize();
+            if (uploadChart) uploadChart.resize();
+        }, 250);
+    });
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('SW registered: ', reg.scope);
+    }).catch(err => console.log('SW failed: ', err));
+  });
+}
+</script>
+
+<!-- 
+REQUIRED FILES FOR PWA:
+
+1. manifest.json (create in same directory as this HTML):
+{
+  "name": "NeonSpeed Network Terminal",
+  "short_name": "NeonSpeed",
+  "description": "Futuristic network diagnostic tool with speed testing",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#00F0FF",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+2. sw.js (create in same directory as this HTML):
+const CACHE_NAME = 'neonspeed-v1';
+const urlsToCache = [
+  './',
+  './index.html',
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+  'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;600;700&display=swap'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
+      .catch(() => {
+        if (event.request.mode === 'navigate') {
+          return caches.match('./');
+        }
+      })
+  );
+});
+
+3. icon-192.png and icon-512.png (192x192 and 512x512 app icons)
+-->
+
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+<script>(function(){document.addEventListener("click",function(e){var a=e.target.closest("[data-product-id]");if(!a)return;e.preventDefault();var pid=a.getAttribute("data-product-id");if(pid)parent.postMessage({type:"ecto-artifact-link-click",productId:pid},"*")})})();</script>
+</body>
+</html>
